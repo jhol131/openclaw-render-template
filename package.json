@@ -1,8 +1,8 @@
 {
   "name": "openclaw-render",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
-  "description": "OpenClaw on Render — one-click deploy, powered by @chrysb/alphaclaw",
+  "description": "OpenClaw on Render — one-click deploy, powered by @chrysb/alphaclaw (jhol131 fork: openclaw pinned 2026.6.11)",
   "scripts": {
     "dev": "docker compose up --build",
     "dev:stop": "docker compose down",
@@ -11,7 +11,11 @@
     "dev:shell": "docker compose exec openclaw bash"
   },
   "dependencies": {
-    "@chrysb/alphaclaw": "0.9.18"
+    "@chrysb/alphaclaw": "0.9.18",
+    "openclaw": "2026.6.11"
+  },
+  "overrides": {
+    "openclaw": "2026.6.11"
   },
   "engines": {
     "node": ">=22.14.0"
