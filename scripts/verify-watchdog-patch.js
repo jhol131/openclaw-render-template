@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 const root = path.resolve(__dirname, "..");
+const rootPackage = require(path.join(root, "package.json"));
 const alphaPackage = require(path.join(
   root,
   "node_modules/@chrysb/alphaclaw/package.json",
@@ -37,7 +38,7 @@ const requiredSnippets = [
 if (alphaPackage.version !== "0.9.36") {
   throw new Error(`unexpected AlphaClaw version: ${alphaPackage.version}`);
 }
-if (openclawPackage.version !== "2026.9.8") {
+if (openclawPackage.version !== rootPackage.dependencies.openclaw) {
   throw new Error(`unexpected OpenClaw version: ${openclawPackage.version}`);
 }
 for (const snippet of requiredSnippets) {

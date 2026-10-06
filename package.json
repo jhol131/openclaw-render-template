@@ -14,10 +14,10 @@
   },
   "dependencies": {
     "@chrysb/alphaclaw": "0.9.36",
-    "openclaw": "2026.9.8"
+    "openclaw": "2026.9.5"
   },
   "overrides": {
-    "openclaw": "2026.9.8"
+    "openclaw": "2026.9.5"
   },
   "engines": {
     "node": ">=24.16.0 <25 || >=26.1.0"
