@@ -11,6 +11,7 @@ COPY patches ./patches
 COPY scripts ./scripts
 RUN patch --batch --forward -p1 -d node_modules/@chrysb/alphaclaw < patches/alphaclaw-watchdog-circuit-breaker.patch \
     && patch --batch --forward -p1 -d node_modules/@chrysb/alphaclaw < patches/alphaclaw-openclaw-2026.9.8-compat.patch \
+    && patch --batch --forward -p1 -d node_modules/@chrysb/alphaclaw < patches/alphaclaw-large-db-preflight-timeout.patch \
     && npm run verify:watchdog-patch
 
 ENV PATH="/app/node_modules/.bin:$PATH"

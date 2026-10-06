@@ -1,0 +1,10 @@
+--- a/tests/server/openclaw-doctor-preflight.test.js
++++ b/tests/server/openclaw-doctor-preflight.test.js
+@@ -139,6 +139,7 @@
+           OPENCLAW_CONFIG_PATH: configPath,
+           OPENCLAW_STATE_DIR: stateDir,
+         }),
++        timeout: 600_000,
+       }),
+     );
+     expect(execFileSyncImpl).toHaveBeenNthCalledWith(

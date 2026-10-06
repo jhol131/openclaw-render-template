@@ -1,0 +1,28 @@
+--- a/lib/server/openclaw-doctor-preflight.js
++++ b/lib/server/openclaw-doctor-preflight.js
+@@ -269,6 +269,16 @@
+     OPENCLAW_CONFIG_PATH: configPath,
+     OPENCLAW_STATE_DIR: resolvedStateDir,
+   };
++  const configuredDoctorTimeoutMs = Number.parseInt(
++    String(env.ALPHACLAW_OPENCLAW_DOCTOR_TIMEOUT_MS || ""),
++    10,
++  );
++  const doctorTimeoutMs = Math.max(
++    150_000,
++    Number.isFinite(configuredDoctorTimeoutMs)
++      ? configuredDoctorTimeoutMs
++      : 600_000,
++  );
+   try {
+     execFileSyncImpl(
+       process.execPath,
+@@ -276,7 +286,7 @@
+       {
+         env: commandEnv,
+         stdio,
+-        timeout: 150_000,
++        timeout: doctorTimeoutMs,
+       },
+     );
+     const migrated = fsImpl.readFileSync(configPath, "utf8");

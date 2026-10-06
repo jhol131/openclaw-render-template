@@ -19,6 +19,13 @@ const migrationSource = fs.readFileSync(
   ),
   "utf8",
 );
+const preflightSource = fs.readFileSync(
+  path.join(
+    root,
+    "node_modules/@chrysb/alphaclaw/lib/server/openclaw-doctor-preflight.js",
+  ),
+  "utf8",
+);
 
 const requiredSnippets = [
   "autoRepairPaused: false",
@@ -47,7 +54,16 @@ for (const snippet of [
     throw new Error(`OpenClaw compatibility hardening missing: ${snippet}`);
   }
 }
+for (const snippet of [
+  "ALPHACLAW_OPENCLAW_DOCTOR_TIMEOUT_MS",
+  "600_000",
+  "timeout: doctorTimeoutMs",
+]) {
+  if (!preflightSource.includes(snippet)) {
+    throw new Error(`large-database preflight hardening missing: ${snippet}`);
+  }
+}
 
 console.log(
-  `verified AlphaClaw ${alphaPackage.version}, OpenClaw ${openclawPackage.version}, watchdog circuit breaker, and migration compatibility`,
+  `verified AlphaClaw ${alphaPackage.version}, OpenClaw ${openclawPackage.version}, watchdog circuit breaker, migration compatibility, and large-database preflight timeout`,
 );

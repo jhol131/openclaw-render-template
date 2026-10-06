@@ -7,6 +7,7 @@
 - Move the image from Node 22 to the supported Node `24.16` runtime.
 - Patch the AlphaClaw watchdog so failed repair attempts stop at the configured maximum and the terminal alert is emitted once per incident.
 - Patch AlphaClaw's Codex auth migration adapter for OpenClaw `2026.9.8`, whose auth migration exports changed after `2026.9.3`.
+- Extend AlphaClaw's Doctor preflight timeout from 150 seconds to a configurable 600-second default so large persistent SQLite databases can complete integrity verification during upgrades.
 
 ## Why Capacity Is Unchanged
 
