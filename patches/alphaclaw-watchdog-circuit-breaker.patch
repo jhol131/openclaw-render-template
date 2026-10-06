@@ -1,0 +1,64 @@
+diff --git a/lib/server/watchdog.js b/lib/server/watchdog.js
+index 856e7fc..fd677ac 100644
+--- a/lib/server/watchdog.js
++++ b/lib/server/watchdog.js
+@@ -62,6 +62,7 @@ const createWatchdog = ({
+     expectedRestartUntilMs: 0,
+     pendingRecoveryNoticeSource: "",
+     awaitingAutoRepairRecovery: false,
++    autoRepairPaused: false,
+     startupConsecutiveHealthFailures: 0,
+     configurationErrorActive: false,
+   };
+@@ -391,11 +392,16 @@ const createWatchdog = ({
+     if (!force && state.awaitingAutoRepairRecovery) {
+       return { ok: false, skipped: true, reason: "awaiting_health_recovery" };
+     }
++    if (!force && state.autoRepairPaused) {
++      return { ok: false, skipped: true, reason: "max_attempts_reached" };
++    }
+     if (state.operationInProgress) {
+       return { ok: false, skipped: true, reason: "operation_in_progress" };
+     }
+     if (force) {
+       state.configurationErrorActive = false;
++      state.autoRepairPaused = false;
++      state.repairAttempts = 0;
+     }
+ 
+     state.operationInProgress = true;
+@@ -473,7 +479,9 @@ const createWatchdog = ({
+         attempts: state.repairAttempts,
+       });
+       if (state.repairAttempts >= kWatchdogMaxRepairAttempts) {
+-        await notify(
++        state.autoRepairPaused = true;
++        await notifyOncePerIncident(
++          "auto_repair_paused",
+           [
+             "🐺 *AlphaClaw Watchdog*",
+             "🔴 Auto-repair failed repeatedly",
+@@ -538,6 +546,7 @@ const createWatchdog = ({
+       state.repairAttempts = 0;
+       state.crashRecoveryActive = false;
+       state.awaitingAutoRepairRecovery = false;
++      state.autoRepairPaused = false;
+       if (shouldNotifyRecovery) {
+         logEvent(
+           "recovery",
+@@ -885,6 +894,7 @@ const createWatchdog = ({
+     state.uptimeStartedAt = null;
+     state.startupConsecutiveHealthFailures = 0;
+     state.awaitingAutoRepairRecovery = false;
++    state.autoRepairPaused = false;
+     state.pendingRecoveryNoticeSource = "";
+     closeIncident();
+   };
+@@ -900,6 +910,7 @@ const createWatchdog = ({
+         : null,
+       lastHealthCheckAt: state.lastHealthCheckAt,
+       repairAttempts: state.repairAttempts,
++      autoRepairPaused: state.autoRepairPaused,
+       autoRepair: state.autoRepair,
+       crashCountInWindow: state.crashTimestamps.length,
+       crashLoopThreshold: kWatchdogCrashLoopThreshold,

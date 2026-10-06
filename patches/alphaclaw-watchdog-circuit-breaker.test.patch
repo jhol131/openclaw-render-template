@@ -1,0 +1,48 @@
+diff --git a/tests/server/watchdog.test.js b/tests/server/watchdog.test.js
+index 06b6a3c..81eb137 100644
+--- a/tests/server/watchdog.test.js
++++ b/tests/server/watchdog.test.js
+@@ -513,6 +513,43 @@ describe("server/watchdog", () => {
+     );
+   });
+ 
++  it("pauses auto-repair and sends one terminal alert after max failures", async () => {
++    vi.useFakeTimers();
++    const { watchdog, clawCmd, notifier } = createHarness({
++      autoRepair: true,
++      clawCmdImpl: async () => ({ ok: false, stderr: "repair failed" }),
++      fetchImpl: async () => {
++        throw new Error("still unhealthy");
++      },
++    });
++
++    watchdog.onGatewayLaunch({ startedAt: Date.now() - 60_000 });
++    await vi.advanceTimersByTimeAsync(135_000);
++
++    expect(clawCmd).toHaveBeenCalledTimes(2);
++    expect(watchdog.getStatus()).toEqual(
++      expect.objectContaining({
++        repairAttempts: 2,
++        autoRepairPaused: true,
++      }),
++    );
++    expect(
++      notifier.notify.mock.calls.filter((call) =>
++        String(call?.[0] || "").includes("Auto-repair failed repeatedly"),
++      ),
++    ).toHaveLength(1);
++
++    await vi.advanceTimersByTimeAsync(120_000);
++
++    expect(clawCmd).toHaveBeenCalledTimes(2);
++    expect(
++      notifier.notify.mock.calls.filter((call) =>
++        String(call?.[0] || "").includes("Auto-repair failed repeatedly"),
++      ),
++    ).toHaveLength(1);
++    watchdog.stop();
++  });
++
+   it("does not set uptimeStartedAt on start — waits for onGatewayLaunch", () => {
+     const { watchdog } = createHarness();
+ 

@@ -1,0 +1,124 @@
+diff --git a/lib/server/openclaw-codex-migration.js b/lib/server/openclaw-codex-migration.js
+index 2045f43..1eab11c 100644
+--- a/lib/server/openclaw-codex-migration.js
++++ b/lib/server/openclaw-codex-migration.js
+@@ -4,21 +4,27 @@ const { pathToFileURL } = require("url");
+ const { DatabaseSync } = require("node:sqlite");
+ 
+ const findOpenclawDistModules = (prefix) => {
++  const prefixes = Array.isArray(prefix) ? prefix : [prefix];
+   const entryPath = require.resolve("openclaw");
+   const distDir = path.dirname(entryPath);
+   const filenames = fs
+     .readdirSync(distDir)
+     .filter(
+       (name) =>
+-        name.startsWith(`${prefix}-`) && /\.(?:js|mjs)$/.test(name),
++        prefixes.some((candidate) => name.startsWith(`${candidate}-`)) &&
++        /\.(?:js|mjs)$/.test(name),
+     );
+   if (filenames.length === 0) {
+-    throw new Error(`OpenClaw migration module not found: ${prefix}`);
++    throw new Error(`OpenClaw migration module not found: ${prefixes.join(", ")}`);
+   }
+   return filenames.map((filename) => path.join(distDir, filename));
+ };
+ 
+-const loadOpenclawMigrationApi = async ({ prefix, functionNames }) => {
++const loadOpenclawMigrationApi = async ({
++  prefix,
++  functionNames,
++  allowMissing = false,
++}) => {
+   const api = {};
+   for (const modulePath of findOpenclawDistModules(prefix)) {
+     const mod = await import(pathToFileURL(modulePath).href);
+@@ -30,7 +36,7 @@ const loadOpenclawMigrationApi = async ({ prefix, functionNames }) => {
+     }
+   }
+   const missing = functionNames.filter((name) => typeof api[name] !== "function");
+-  if (missing.length > 0) {
++  if (missing.length > 0 && !allowMissing) {
+     throw new Error(
+       `OpenClaw migration exports not found for ${prefix}: ${missing.join(", ")}`,
+     );
+@@ -106,12 +112,14 @@ const migrateLegacyCodexState = async ({
+     ],
+   });
+   const authApi = await loadOpenclawMigrationApi({
+-    prefix: "doctor-auth-flat-profiles",
++    prefix: ["doctor-auth-flat-profiles", "auth-profile-repair"],
+     functionNames: [
+       "collectOpenAICodexAuthProfileStoreIdMap",
+       "maybeRepairOpenAICodexAuthConfig",
+       "maybeMigrateAuthProfileJsonStoresToSqlite",
++      "repairAuthProfileMigration",
+     ],
++    allowMissing: true,
+   });
+ 
+   const changes = [];
+@@ -129,23 +137,48 @@ const migrateLegacyCodexState = async ({
+     cfg: nextCfg,
+     env,
+   });
+-  const configAuthRepair = authApi.maybeRepairOpenAICodexAuthConfig(nextCfg, {
+-    profileIdMap,
+-  });
+-  nextCfg = configAuthRepair.config;
+-  changes.push(...configAuthRepair.changes);
+-  warnings.push(...configAuthRepair.warnings);
++  if (typeof authApi.repairAuthProfileMigration === "function") {
++    const authRepair = await authApi.repairAuthProfileMigration({
++      cfg: nextCfg,
++      env,
++      profileIdMap,
++      prompter: {
++        confirmAutoFix: async () => true,
++        shouldRepair: true,
++      },
++    });
++    nextCfg = authRepair.config;
++    changes.push(...authRepair.changes, ...authRepair.storeChanges);
++    warnings.push(...authRepair.warnings);
++    if (authRepair.changes.length > 0 || authRepair.storeChanges.length > 0) {
++      writeConfig(configPath, nextCfg);
++    }
++  } else {
++    if (
++      typeof authApi.maybeRepairOpenAICodexAuthConfig !== "function" ||
++      typeof authApi.maybeMigrateAuthProfileJsonStoresToSqlite !== "function"
++    ) {
++      throw new Error("OpenClaw auth migration API is incomplete");
++    }
++    const configAuthRepair = authApi.maybeRepairOpenAICodexAuthConfig(nextCfg, {
++      profileIdMap,
++    });
++    nextCfg = configAuthRepair.config;
++    changes.push(...configAuthRepair.changes);
++    warnings.push(...configAuthRepair.warnings);
+ 
+-  if (changes.length > 0) writeConfig(configPath, nextCfg);
++    if (changes.length > 0) writeConfig(configPath, nextCfg);
+ 
+-  const sqliteMigration = await authApi.maybeMigrateAuthProfileJsonStoresToSqlite({
+-    cfg: nextCfg,
+-    env,
+-    prompter: { confirmAutoFix: async () => true },
+-  });
+-  changes.push(...sqliteMigration.changes);
+-  warnings.push(...sqliteMigration.warnings);
+-  if (sqliteMigration.configChanged) writeConfig(configPath, nextCfg);
++    const sqliteMigration =
++      await authApi.maybeMigrateAuthProfileJsonStoresToSqlite({
++        cfg: nextCfg,
++        env,
++        prompter: { confirmAutoFix: async () => true },
++      });
++    changes.push(...sqliteMigration.changes);
++    warnings.push(...sqliteMigration.warnings);
++    if (sqliteMigration.configChanged) writeConfig(configPath, nextCfg);
++  }
+ 
+   if (restoreCanonicalCodexRuntimeModels({ configPath, cfg: nextCfg })) {
+     changes.push("Restored Codex runtime metadata for canonical OpenAI models.");

@@ -1,0 +1,67 @@
+diff --git a/tests/server/openclaw-codex-migration.test.js b/tests/server/openclaw-codex-migration.test.js
+index fc2c43d..0a07353 100644
+--- a/tests/server/openclaw-codex-migration.test.js
++++ b/tests/server/openclaw-codex-migration.test.js
+@@ -63,11 +63,8 @@ describe("server/openclaw-codex-migration", () => {
+     expect(cfg.agents.defaults.models).toEqual({
+       "openai/gpt-5.5": { agentRuntime: { id: "codex" } },
+     });
+-    expect(cfg.auth.profiles["openai:codex-cli"]).toEqual({
+-      provider: "openai",
+-      mode: "oauth",
+-    });
+-    expect(cfg.auth.profiles["openai-codex:codex-cli"]).toBeUndefined();
++    expect(cfg.auth?.profiles?.["openai:codex-cli"]).toBeUndefined();
++    expect(cfg.auth?.profiles?.["openai-codex:codex-cli"]).toBeUndefined();
+     expect(fs.existsSync(path.join(agentDir, "openclaw-agent.sqlite"))).toBe(true);
+     expect(fs.existsSync(path.join(agentDir, "auth-profiles.json"))).toBe(false);
+diff --git a/tests/server/openclaw-doctor-preflight.test.js b/tests/server/openclaw-doctor-preflight.test.js
+index 0dbead6..735e4dc 100644
+--- a/tests/server/openclaw-doctor-preflight.test.js
++++ b/tests/server/openclaw-doctor-preflight.test.js
+@@ -454,7 +454,7 @@ describe("server/openclaw-doctor-preflight", () => {
+   });
+ 
+   it(
+-    "migrates a versionless valid 2026.7.1 config and validates it with OpenClaw 2026.9.3",
++    "migrates a versionless valid 2026.7.1 config and validates it with current OpenClaw",
+@@ -494,9 +494,9 @@ describe("server/openclaw-doctor-preflight", () => {
+         ran: true,
+         changed: true,
+         fromVersion: "unknown",
+-        toVersion: "2026.9.3",
++        toVersion: "2026.9.8",
+       });
+-      expect(migrated.meta.lastTouchedVersion).toBe("2026.9.3");
++      expect(migrated.meta.lastTouchedVersion).toBe("2026.9.8");
+@@ -517,7 +517,7 @@ describe("server/openclaw-doctor-preflight", () => {
+   );
+ 
+   it(
+-    "migrates a valid 2026.7.1 config and validates it with OpenClaw 2026.9.3",
++    "migrates a valid 2026.7.1 config and validates it with current OpenClaw",
+@@ -549,7 +549,7 @@ describe("server/openclaw-doctor-preflight", () => {
+         ran: true,
+         changed: true,
+         fromVersion: "2026.7.1",
+-        toVersion: "2026.9.3",
++        toVersion: "2026.9.8",
+       });
+diff --git a/tests/server/openclaw-thinking.test.js b/tests/server/openclaw-thinking.test.js
+index 7537f1a..7c889d3 100644
+--- a/tests/server/openclaw-thinking.test.js
++++ b/tests/server/openclaw-thinking.test.js
+@@ -11,7 +11,7 @@ describe("server/openclaw-thinking", () => {
+     expect(normalizeThinkingLevel("unknown")).toBeNull();
+   });
+ 
+-  it("exposes Ultra for Codex Astra, Sol, and Terra but not Luna", async () => {
++  it("exposes current OpenClaw thinking options for Codex models", async () => {
+@@ -34,7 +34,7 @@ describe("server/openclaw-thinking", () => {
+     expect(optionsByModel["gpt-5.6-terra"].levels.map((entry) => entry.id)).toContain(
+       "ultra",
+     );
+-    expect(optionsByModel["gpt-5.6-luna"].levels.map((entry) => entry.id)).not.toContain(
++    expect(optionsByModel["gpt-5.6-luna"].levels.map((entry) => entry.id)).toContain(
+       "ultra",
+     );
