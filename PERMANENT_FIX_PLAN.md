@@ -8,6 +8,7 @@
 - Patch the AlphaClaw watchdog so failed repair attempts stop at the configured maximum and the terminal alert is emitted once per incident.
 - Patch AlphaClaw's Codex auth migration adapter for OpenClaw `2026.9.8`, whose auth migration exports changed after `2026.9.3`.
 - Extend AlphaClaw's Doctor preflight timeout from 150 seconds to a configurable 600-second default so large persistent SQLite databases can complete integrity verification during upgrades.
+- Preserve and archive the two retired Telegram JSON files that OpenClaw `2026.9.8` refuses after the canonical SQLite migration is already complete, preventing replay ambiguity without deleting their bytes.
 
 ## Why Capacity Is Unchanged
 
